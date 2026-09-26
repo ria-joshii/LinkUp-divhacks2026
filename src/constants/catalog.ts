@@ -5,19 +5,6 @@ export type Choice = {
   label: string;
 };
 
-export const NEIGHBORHOODS = [
-  'Harlem',
-  'Washington Heights',
-  'Astoria',
-  'Bed-Stuy',
-  'Williamsburg',
-  'LES',
-  'Park Slope',
-  'Flushing',
-  'Jackson Heights',
-  'Upper West Side',
-] as const;
-
 export const INTERESTS: Interest[] = [
   { id: 'jazz', label: 'Jazz' },
   { id: 'dumplings', label: 'Dumplings' },

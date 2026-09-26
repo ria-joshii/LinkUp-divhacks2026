@@ -67,11 +67,15 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
   },
   input: {
     flex: 1,
-    minHeight: 52,
+    minWidth: 0,
+    height: 54,
+    margin: 0,
+    paddingVertical: 0,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.three,
     backgroundColor: Colors.surface,
@@ -81,8 +85,8 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
   },
   add: {
-    minWidth: 72,
-    minHeight: 52,
+    width: 72,
+    height: 54,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',

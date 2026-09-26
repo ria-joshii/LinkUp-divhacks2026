@@ -32,6 +32,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Blindspot uses a photo you choose so a match can see who they are meeting."
+        }
       ]
     ],
     "experiments": {

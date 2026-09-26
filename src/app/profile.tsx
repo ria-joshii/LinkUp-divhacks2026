@@ -1,10 +1,12 @@
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { GemList } from '@/components/gem-list';
-import { NeighborhoodPicker } from '@/components/neighborhood-picker';
 import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
 import { ChoiceGroup } from '@/components/ui/choice-group';
 import { ScreenContainer } from '@/components/ui/screen-container';
 import { TextField } from '@/components/ui/text-field';
@@ -13,8 +15,17 @@ import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme
 import { useApp } from '@/context/app-context';
 import { saveAvailability, saveInterests } from '@/lib/api';
 import { resetTo } from '@/lib/nav';
-import type { ResidentType } from '@/lib/types';
+import type { Interest, ResidentType } from '@/lib/types';
 import { isPhone } from '@/lib/validate';
+
+function interestId(label: string): string {
+  const slug = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return slug || `interest-${Date.now()}`;
+}
 
 function toggle(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
@@ -24,9 +35,11 @@ export default function ProfileScreen() {
   const { ready, user, onboarded, updateUser, signOut } = useApp();
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
-  const [neighborhood, setNeighborhood] = useState(user?.neighborhood);
+  const [neighborhood, setNeighborhood] = useState(user?.neighborhood ?? '');
+  const [photoUrl, setPhotoUrl] = useState(user?.photoUrl);
   const [residentType, setResidentType] = useState<ResidentType>(user?.residentType ?? 'new');
-  const [interestIds, setInterestIds] = useState(user?.interests.map((item) => item.id) ?? []);
+  const [interests, setInterests] = useState<Interest[]>(user?.interests ?? []);
+  const [interestDraft, setInterestDraft] = useState('');
   const [cuisineIds, setCuisineIds] = useState(user?.cuisines ?? []);
   const [availabilityIds, setAvailabilityIds] = useState(user?.availability ?? []);
   const [restaurants, setRestaurants] = useState(user?.localFavorites?.restaurants ?? []);
@@ -50,12 +63,13 @@ export default function ProfileScreen() {
       setError('The group text needs a real phone number.');
       return;
     }
-    if (!neighborhood) {
-      setError('Pick a neighborhood.');
+    const trimmedNeighborhood = neighborhood.trim();
+    if (!trimmedNeighborhood) {
+      setError('Add your neighborhood.');
       return;
     }
-    if (interestIds.length === 0) {
-      setError('Choose at least one interest.');
+    if (interests.length === 0) {
+      setError('Add at least one interest.');
       return;
     }
     if (cuisineIds.length === 0) {
@@ -74,14 +88,14 @@ export default function ProfileScreen() {
       const withTastes = await saveInterests(user.id, {
         name: trimmedName,
         phone: phone.trim(),
-        neighborhood,
+        neighborhood: trimmedNeighborhood,
         residentType,
-        interests: INTERESTS.filter((item) => interestIds.includes(item.id)),
+        interests,
         cuisines: cuisineIds,
         localFavorites: residentType === 'local' ? { restaurants, cafes } : undefined,
       });
       const saved = await saveAvailability(withTastes.id, availabilityIds);
-      await updateUser(saved, { onboarded: true });
+      await updateUser({ ...saved, photoUrl }, { onboarded: true });
       if (finishingSetup) resetTo('/home');
       else if (router.canGoBack()) router.back();
       else resetTo('/home');
@@ -104,6 +118,40 @@ export default function ProfileScreen() {
     ]);
   }
 
+  function addTypedInterest() {
+    const label = interestDraft.trim();
+    if (!label) return;
+    const known = INTERESTS.find((item) => item.label.toLowerCase() === label.toLowerCase());
+    const next = known ?? { id: interestId(label), label };
+    setInterests((current) => {
+      const exists = current.some(
+        (item) => item.id === next.id || item.label.toLowerCase() === label.toLowerCase(),
+      );
+      return exists ? current : [...current, next];
+    });
+    setInterestDraft('');
+  }
+
+  async function pickPhoto() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError('Allow photo access to add a picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setError('');
+      setPhotoUrl(result.assets[0].uri);
+    }
+  }
+
+  const extraInterests = interests.filter((item) => !INTERESTS.some((preset) => preset.id === item.id));
+
   if (!user) return <View style={styles.boot} />;
 
   return (
@@ -124,6 +172,17 @@ export default function ProfileScreen() {
       <Text style={styles.title}>{onboarded ? 'Edit your corner' : 'Your corner of the city'}</Text>
       <Text style={styles.body}>Neighbors match on taste. The spot stays a secret until you both commit.</Text>
 
+      <Pressable accessibilityRole="button" onPress={() => void pickPhoto()} style={styles.photoButton}>
+        {photoUrl ? (
+          <Image source={{ uri: photoUrl }} style={styles.photo} contentFit="cover" />
+        ) : (
+          <View style={styles.photoFallback}>
+            <Text style={styles.photoInitial}>{(name.trim()[0] ?? '?').toUpperCase()}</Text>
+          </View>
+        )}
+        <Text style={styles.photoLabel}>{photoUrl ? 'Change photo' : 'Add a photo'}</Text>
+      </Pressable>
+
       <TextField label="Name" value={name} onChangeText={setName} autoCapitalize="words" autoComplete="name" />
       <TextField
         label="Phone"
@@ -131,9 +190,15 @@ export default function ProfileScreen() {
         onChangeText={setPhone}
         keyboardType="phone-pad"
         autoComplete="tel"
-        helper="Needed for the group text. It stays off your public card."
+        helper="Needed for the group text. It stays off your public profile."
       />
-      <NeighborhoodPicker value={neighborhood} onChange={setNeighborhood} />
+      <TextField
+        label="Neighborhood"
+        value={neighborhood}
+        onChangeText={setNeighborhood}
+        placeholder="Harlem, Astoria, Bed-Stuy"
+        autoCapitalize="words"
+      />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>In the city</Text>
@@ -157,8 +222,46 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Interests</Text>
-        <Text style={styles.hint}>What should a night together be built around?</Text>
-        <ChoiceGroup options={INTERESTS} selected={interestIds} onToggle={(id) => setInterestIds((current) => toggle(current, id))} />
+        <Text style={styles.hint}>Type your own, or tap a bubble. Tap a filled bubble to take it off.</Text>
+        <View style={styles.addRow}>
+          <TextInput
+            value={interestDraft}
+            onChangeText={setInterestDraft}
+            placeholder="Jazz, thrifting, dumplings"
+            placeholderTextColor={Colors.textFaint}
+            onSubmitEditing={addTypedInterest}
+            returnKeyType="done"
+            autoCapitalize="words"
+            style={styles.addInput}
+          />
+          <Pressable accessibilityRole="button" onPress={addTypedInterest} style={styles.addButton}>
+            <Text style={styles.addLabel}>Add</Text>
+          </Pressable>
+        </View>
+        <View style={styles.bubbles}>
+          {INTERESTS.map((item) => (
+            <Chip
+              key={item.id}
+              label={item.label}
+              selected={interests.some((interest) => interest.id === item.id)}
+              onPress={() => {
+                const selected = interests.some((interest) => interest.id === item.id);
+                setInterests((current) =>
+                  selected ? current.filter((interest) => interest.id !== item.id) : [...current, item],
+                );
+              }}
+            />
+          ))}
+          {extraInterests.map((item) => (
+            <Chip
+              key={item.id}
+              label={item.label}
+              selected
+              accessibilityLabel={`Remove ${item.label}`}
+              onPress={() => setInterests((current) => current.filter((interest) => interest.id !== item.id))}
+            />
+          ))}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -273,5 +376,74 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     fontSize: FontSize.sm,
     textAlign: 'center',
+  },
+  photoButton: {
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: Spacing.two,
+    minHeight: 44,
+  },
+  photo: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: Colors.surface,
+  },
+  photoFallback: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: Colors.gold,
+  },
+  photoInitial: {
+    color: Colors.gold,
+    fontFamily: FontFamily.display,
+    fontSize: FontSize.xxl,
+  },
+  photoLabel: {
+    color: Colors.gold,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  addInput: {
+    flex: 1,
+    minWidth: 0,
+    height: 54,
+    margin: 0,
+    paddingVertical: 0,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.three,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.line,
+    color: Colors.text,
+    fontSize: FontSize.md,
+  },
+  addButton: {
+    width: 72,
+    height: 54,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.gold,
+  },
+  addLabel: {
+    color: Colors.ink,
+    fontWeight: '700',
+    fontSize: FontSize.sm,
+  },
+  bubbles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
   },
 });
