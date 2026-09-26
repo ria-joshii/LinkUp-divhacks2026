@@ -1,55 +1,21 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-import '@/global.css';
-
 import { Platform } from 'react-native';
 
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  background: '#14110E',
+  surface: '#241C16',
+  surfaceRaised: '#322820',
+  text: '#F6EFE4',
+  textMuted: '#CDBBA8',
+  textFaint: '#8D7B6C',
+  accent: '#FF5C39',
+  ink: '#1A100C',
+  gold: '#E7B34C',
+  line: '#3D322A',
+  danger: '#FF7A72',
+  paper: '#F3E6D0',
+  paperInk: '#2A2118',
+  tape: '#2A2118',
 } as const;
-
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
 
 export const Spacing = {
   half: 2,
@@ -58,8 +24,31 @@ export const Spacing = {
   three: 16,
   four: 24,
   five: 32,
-  six: 64,
+  six: 48,
+  seven: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const FontSize = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 22,
+  xxl: 32,
+  display: 56,
+} as const;
+
+export const Radius = {
+  sm: 12,
+  md: 18,
+  lg: 28,
+  pill: 999,
+} as const;
+
+export const FontFamily = {
+  display: Platform.select({
+    ios: 'Georgia',
+    android: 'serif',
+    default: 'Georgia',
+  }),
+} as const;

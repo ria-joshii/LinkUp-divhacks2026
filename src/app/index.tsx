@@ -1,98 +1,92 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Redirect, router } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { ScreenContainer } from '@/components/ui/screen-container';
+import { APP_NAME, TAGLINE } from '@/constants/app';
+import { Colors, FontFamily, FontSize, Spacing } from '@/constants/theme';
+import { useApp } from '@/context/app-context';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+export default function WelcomeScreen() {
+  const { ready, user, onboarded } = useApp();
+
+  if (!ready) return <View style={styles.boot} />;
+  if (user && onboarded) return <Redirect href="/home" />;
+  if (user) return <Redirect href="/profile" />;
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <ScreenContainer
+      footer={
+        <View style={styles.footer}>
+          <Button label="Find a match" onPress={() => router.push('/login')} />
+          <Text style={styles.note}>First time here? We'll text you a code.</Text>
+        </View>
+      }>
+      <View style={styles.hero}>
+        <Text style={styles.kicker}>NYC · Know your city</Text>
+        <Text style={styles.title}>{APP_NAME}</Text>
+        <Text style={styles.tagline}>{TAGLINE}</Text>
+        <View style={styles.stamp}>
+          <Text style={styles.stampText}>Hidden spot</Text>
+        </View>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  boot: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  hero: {
     flex: 1,
     justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
+    paddingHorizontal: Spacing.three,
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
+  kicker: {
+    color: Colors.gold,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  title: {
+    color: Colors.text,
+    fontFamily: FontFamily.display,
+    fontSize: FontSize.display,
+    lineHeight: 60,
+  },
+  tagline: {
+    color: Colors.textMuted,
+    fontSize: FontSize.lg,
+    lineHeight: 26,
+    maxWidth: 280,
+  },
+  stamp: {
+    alignSelf: 'flex-start',
+    marginTop: Spacing.two,
+    borderWidth: 2,
+    borderColor: Colors.gold,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    transform: [{ rotate: '-8deg' }],
+  },
+  stampText: {
+    color: Colors.gold,
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  footer: {
+    gap: Spacing.two,
+  },
+  note: {
+    color: Colors.textFaint,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
   },
 });
