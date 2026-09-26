@@ -282,14 +282,14 @@ export default function ProfileScreen() {
       {residentType === 'local' ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Local favorites</Text>
-          <Text style={styles.hint}>Restaurants and cafes you'd send a friend to. The quiet ones count.</Text>
+          <Text style={styles.hint}>Restaurants and cafes you just love..</Text>
           <GemList
             label="Restaurants"
-            placeholder="A spot with no sign"
+            placeholder=""
             items={restaurants}
             onChange={setRestaurants}
           />
-          <GemList label="Cafes" placeholder="Three tables and good light" items={cafes} onChange={setCafes} />
+          <GemList label="Cafes" placeholder="" items={cafes} onChange={setCafes} />
         </View>
       ) : null}
 

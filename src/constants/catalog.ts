@@ -7,15 +7,16 @@ export type Choice = {
 
 export const INTERESTS: Interest[] = [
   { id: 'jazz', label: 'Jazz' },
-  { id: 'dumplings', label: 'Dumplings' },
+  { id: 'hiking', label: 'Hiking' },
   { id: 'thrifting', label: 'Thrifting' },
   { id: 'pickup-basketball', label: 'Pickup basketball' },
   { id: 'bookstores', label: 'Bookstores' },
-  { id: 'coffee', label: 'Coffee' },
+  { id: 'cooking', label: 'cooking' },
   { id: 'film', label: 'Film' },
   { id: 'art-galleries', label: 'Art galleries' },
   { id: 'running', label: 'Running' },
   { id: 'board-games', label: 'Board games' },
+  { id: 'yoga', label: 'Yoga' },
 ];
 
 export const CUISINES: Choice[] = [
