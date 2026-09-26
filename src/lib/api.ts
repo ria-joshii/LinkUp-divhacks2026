@@ -235,7 +235,7 @@ export async function signUp(input: SignUpInput): Promise<User> {
       id: `user_${Date.now()}`,
       name: input.name.trim(),
       phone: input.phone.trim(),
-      email: input.email.trim().toLowerCase(),
+      email: input.email?.trim().toLowerCase() ?? '',
       interests: [],
       cuisines: [],
       availability: [],

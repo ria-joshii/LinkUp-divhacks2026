@@ -9,13 +9,12 @@ import { Colors, FontFamily, FontSize } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
 import { errorMessage, requestVerificationCode } from '@/lib/api';
 import { resetTo } from '@/lib/nav';
-import { isEmail, isPhone } from '@/lib/validate';
+import { isPhone } from '@/lib/validate';
 
 export default function LoginScreen() {
   const { ready, user, onboarded } = useApp();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -27,7 +26,6 @@ export default function LoginScreen() {
   async function continueToCode() {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
-    const trimmedEmail = email.trim();
     if (trimmedName.length < 2) {
       setError('Tell us the name you go by.');
       return;
@@ -36,17 +34,13 @@ export default function LoginScreen() {
       setError('Enter a phone number we can text.');
       return;
     }
-    if (!isEmail(trimmedEmail)) {
-      setError('That email does not look finished.');
-      return;
-    }
     setError('');
     setBusy(true);
     try {
-      await requestVerificationCode({ name: trimmedName, phone: trimmedPhone, email: trimmedEmail });
+      await requestVerificationCode({ name: trimmedName, phone: trimmedPhone });
       router.push({
         pathname: '/verify',
-        params: { name: trimmedName, phone: trimmedPhone, email: trimmedEmail },
+        params: { name: trimmedName, phone: trimmedPhone },
       });
     } catch (caught) {
       setError(errorMessage(caught, 'Could not text that code.'));
@@ -69,7 +63,7 @@ export default function LoginScreen() {
       </Pressable>
       <Text style={styles.kicker}>Sign in</Text>
       <Text style={styles.title}>Who's showing up?</Text>
-      <Text style={styles.body}>Name, phone, and email. Then a short code so we know it's you.</Text>
+      <Text style={styles.body}>Name and phone. Then a short code so we know it's you.</Text>
       <TextField
         label="Name"
         value={name}
@@ -88,16 +82,6 @@ export default function LoginScreen() {
         autoComplete="tel"
         textContentType="telephoneNumber"
         helper="We'll use this later for the group text."
-      />
-      <TextField
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="you@email.com"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoComplete="email"
-        textContentType="emailAddress"
       />
     </ScreenContainer>
   );

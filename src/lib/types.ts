@@ -52,7 +52,7 @@ export type Feedback = {
 export type SignUpInput = {
   name: string;
   phone: string;
-  email: string;
+  email?: string;
 };
 
 export type VerifyCodeInput = SignUpInput & {

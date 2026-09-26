@@ -15,7 +15,6 @@ export default function VerifyScreen() {
   const params = useLocalSearchParams();
   const name = param(params.name);
   const phone = param(params.phone);
-  const email = param(params.email);
   const { ready, user, onboarded, signIn } = useApp();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -31,14 +30,14 @@ export default function VerifyScreen() {
       setError('Enter the 4-digit code.');
       return;
     }
-    if (!name || !phone || !email) {
+    if (!name || !phone) {
       setError('Start again so we know who to text.');
       return;
     }
     setError('');
     setBusy(true);
     try {
-      const created = await verifyCode({ name, phone, email, code: code.trim() });
+      const created = await verifyCode({ name, phone, code: code.trim() });
       await signIn(created);
     } catch (caught) {
       setBusy(false);
