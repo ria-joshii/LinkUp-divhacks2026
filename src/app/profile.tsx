@@ -13,7 +13,7 @@ import { TextField } from '@/components/ui/text-field';
 import { AVAILABILITY, CUISINES, INTERESTS } from '@/constants/catalog';
 import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useApp } from '@/context/app-context';
-import { saveAvailability, saveInterests } from '@/lib/api';
+import { checkIdName, errorMessage, saveAvailability, saveInterests } from '@/lib/api';
 import { resetTo } from '@/lib/nav';
 import type { Interest, ResidentType } from '@/lib/types';
 import { isPhone } from '@/lib/validate';
@@ -46,6 +46,10 @@ export default function ProfileScreen() {
   const [cafes, setCafes] = useState(user?.localFavorites?.cafes ?? []);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [checkingId, setCheckingId] = useState(false);
+  const [idVerified, setIdVerified] = useState(user?.idVerified ?? false);
+  const [verifyNote, setVerifyNote] = useState('');
 
   useEffect(() => {
     if (!ready) return;
@@ -95,7 +99,7 @@ export default function ProfileScreen() {
         localFavorites: residentType === 'local' ? { restaurants, cafes } : undefined,
       });
       const saved = await saveAvailability(withTastes.id, availabilityIds);
-      await updateUser({ ...saved, photoUrl }, { onboarded: true });
+      await updateUser({ ...saved, photoUrl, idVerified }, { onboarded: true });
       if (finishingSetup) resetTo('/home');
       else if (router.canGoBack()) router.back();
       else resetTo('/home');
@@ -130,6 +134,56 @@ export default function ProfileScreen() {
       return exists ? current : [...current, next];
     });
     setInterestDraft('');
+  }
+
+  function changeName(value: string) {
+    setName(value);
+    if (!idVerified || !user) return;
+    setIdVerified(false);
+    setVerifyNote('');
+    void updateUser({ ...user, idVerified: false });
+  }
+
+  async function checkId() {
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) {
+      setVerifyNote('Add your name above before checking an ID.');
+      return;
+    }
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setVerifyNote('Allow camera access to photograph your ID.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      cameraType: ImagePicker.CameraType.back,
+      quality: 0.6,
+      base64: true,
+    });
+    const imageBase64 = result.canceled ? undefined : result.assets[0]?.base64;
+    if (!imageBase64 || !user) return;
+
+    setCheckingId(true);
+    setVerifyNote('');
+    setError('');
+    try {
+      const { match } = await checkIdName(trimmedName, imageBase64);
+      if (match) {
+        setIdVerified(true);
+        setVerifyNote('Name matches this profile.');
+        await updateUser({ ...user, idVerified: true });
+      } else {
+        setIdVerified(false);
+        setVerifyNote('The name on that ID does not match the name on this profile.');
+        await updateUser({ ...user, idVerified: false });
+      }
+    } catch (caught) {
+      setIdVerified(false);
+      setVerifyNote(errorMessage(caught, 'Could not read that ID.'));
+    } finally {
+      setCheckingId(false);
+    }
   }
 
   async function pickPhoto() {
@@ -183,7 +237,7 @@ export default function ProfileScreen() {
         <Text style={styles.photoLabel}>{photoUrl ? 'Change photo' : 'Add a photo'}</Text>
       </Pressable>
 
-      <TextField label="Name" value={name} onChangeText={setName} autoCapitalize="words" autoComplete="name" />
+      <TextField label="Name" value={name} onChangeText={changeName} autoCapitalize="words" autoComplete="name" />
       <TextField
         label="Phone"
         value={phone}
@@ -294,6 +348,32 @@ export default function ProfileScreen() {
       ) : null}
 
       <Button label="Log out" variant="ghost" onPress={confirmLogout} />
+
+      <View style={styles.verifyBlock}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: verifyOpen, selected: idVerified }}
+          onPress={() => setVerifyOpen((open) => !open)}
+          style={[styles.verifyTab, (verifyOpen || idVerified) && styles.verifyTabOn]}>
+          <Text style={[styles.verifyTabLabel, (verifyOpen || idVerified) && styles.verifyTabLabelOn]}>Verify</Text>
+        </Pressable>
+        {verifyOpen ? (
+          <View style={styles.verifyPanel}>
+            <Text style={styles.hint}>
+              Photograph a government ID. We read the name, compare it to this profile, and delete the photo.
+            </Text>
+            <Button
+              label={idVerified ? 'Check again' : 'Take ID photo'}
+              variant="secondary"
+              loading={checkingId}
+              onPress={() => void checkId()}
+            />
+            {verifyNote ? <Text style={idVerified ? styles.verifyOk : styles.verifyMiss}>{verifyNote}</Text> : null}
+          </View>
+        ) : idVerified ? (
+          <Text style={styles.verifyOk}>Name matches this profile.</Text>
+        ) : null}
+      </View>
     </ScreenContainer>
   );
 }
@@ -445,5 +525,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+  },
+  verifyBlock: {
+    alignItems: 'flex-start',
+    gap: Spacing.two,
+  },
+  verifyTab: {
+    minHeight: 36,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    borderColor: Colors.gold,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyTabOn: {
+    backgroundColor: Colors.gold,
+    borderColor: Colors.gold,
+  },
+  verifyTabLabel: {
+    color: Colors.gold,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+  verifyTabLabelOn: {
+    color: Colors.ink,
+  },
+  verifyPanel: {
+    alignSelf: 'stretch',
+    gap: Spacing.two,
+  },
+  verifyOk: {
+    color: Colors.gold,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
+  },
+  verifyMiss: {
+    color: Colors.danger,
+    fontSize: FontSize.sm,
+    lineHeight: 20,
   },
 });

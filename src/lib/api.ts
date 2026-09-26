@@ -21,6 +21,7 @@ import type {
  *
  *   POST /auth/send-code
  *   POST /auth/verify-code
+ *   POST /auth/verify-id
  *   POST /signup
  *   POST /users/:id/interests
  *   POST /users/:id/availability
@@ -217,6 +218,14 @@ export async function requestVerificationCode(input: SignUpInput): Promise<void>
   await request<{ ok: true }>('/auth/send-code', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+/** Reads an ID photo on the auth server and checks it against the profile name. The photo is not stored. */
+export async function checkIdName(name: string, imageBase64: string): Promise<{ match: boolean }> {
+  return request<{ match: boolean }>('/auth/verify-id', {
+    method: 'POST',
+    body: JSON.stringify({ name, imageBase64 }),
   });
 }
 

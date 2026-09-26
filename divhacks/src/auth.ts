@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
+import { idNameMatches } from "./id-check";
 import { toE164 } from "./phone";
 import { checkCode, dropCode, issueCode, requirePepper } from "./store";
 
@@ -20,13 +21,13 @@ function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+async function readJson(req: IncomingMessage, maxBytes = 20_000): Promise<unknown> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     size += buffer.length;
-    if (size > 20_000) throw new Error("Request body is too large.");
+    if (size > maxBytes) throw new Error("Request body is too large.");
     chunks.push(buffer);
   }
   if (chunks.length === 0) return {};
@@ -79,6 +80,10 @@ export function startAuthServer(port: number, sendLoginCode: SendLoginCode) {
       }
       if (req.method === "POST" && req.url === "/auth/verify-code") {
         await handleVerify(req, res);
+        return;
+      }
+      if (req.method === "POST" && req.url === "/auth/verify-id") {
+        await handleVerifyId(req, res);
         return;
       }
       sendJson(res, 404, { error: "Not found." });
@@ -149,4 +154,26 @@ async function handleVerify(req: IncomingMessage, res: ServerResponse) {
     cuisines: [],
     availability: [],
   });
+}
+
+async function handleVerifyId(req: IncomingMessage, res: ServerResponse) {
+  const body = (await readJson(req, 8_000_000)) as { name?: unknown; imageBase64?: unknown };
+  const name = readString(body.name);
+  const imageBase64 = readString(body.imageBase64).replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
+  if (name.length < 2) {
+    sendJson(res, 400, { error: "Add your name before checking an ID." });
+    return;
+  }
+  if (imageBase64.length < 100) {
+    sendJson(res, 400, { error: "That photo could not be read. Take another one." });
+    return;
+  }
+
+  try {
+    const match = await idNameMatches(name, imageBase64);
+    sendJson(res, 200, { match });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not read that ID.";
+    sendJson(res, 422, { error: message });
+  }
 }

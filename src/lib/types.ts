@@ -23,6 +23,7 @@ export type User = {
   availability: string[];
   photoUrl?: string;
   localFavorites?: LocalFavorites;
+  idVerified?: boolean;
 };
 
 export type BlindSpot = {
