@@ -23,7 +23,7 @@ const pending = new Map<string, PendingCode>();
 
 export function requirePepper(): string {
   const value = process.env.CODE_PEPPER?.trim();
-  if (!value) throw new Error("Missing CODE_PEPPER in divhacks/.env");
+  if (!value) throw new Error("Missing CODE_PEPPER in .env");
   return value;
 }
 

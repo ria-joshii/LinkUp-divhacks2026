@@ -4,7 +4,7 @@ A [Spectrum](https://photon.codes/docs/spectrum-ts) project. Wired with: imessag
 
 ## Environment
 
-Before running, open `.env` and fill in the values:
+Before running, open the project root `.env` and fill in the values:
 
 From your project Settings on the [Photon dashboard](https://app.photon.codes):
 

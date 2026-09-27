@@ -7,7 +7,7 @@ import { APP_NAME } from "./config";
 const projectId = process.env.PROJECT_ID?.trim();
 const projectSecret = process.env.PROJECT_SECRET?.trim();
 if (!projectId || !projectSecret) {
-  throw new Error("Missing PROJECT_ID or PROJECT_SECRET in divhacks/.env");
+  throw new Error("Missing PROJECT_ID or PROJECT_SECRET in .env");
 }
 
 const app = await Spectrum({
